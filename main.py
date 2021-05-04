@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 21 14:11:48 2021
-
-@author: moore
-"""
-
 import glob
 
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn as skl
-import sklearn.utils, sklearn.preprocessing, sklearn.decomposition, sklearn.svm
+import sklearn.utils, sklearn.preprocessing, sklearn.decomposition
 from sklearn.neural_network import MLPClassifier
 from joblib import dump, load
 import librosa
 import librosa.display
 
 import utils
+from ClassifierArray import ClassifierArray
 
 #if the song is shorter than the target_duration in seconds, it will pad with zeros
 def path_to_mfcc(filename, target_duration=31):
@@ -111,8 +106,8 @@ def get_train_test_sets(test_interval=3,folder_ids=range(0,156),mfcc_folder='dat
                 
     return (np.array(X_trn),np.array(y_trn),np.array(X_test),np.array(y_test))
 
-def train(model, X_trn, y_trn):
-    model.fit(X_trn,y_trn)
+def train(model, X_trn_list, y_trn_list, X_trn, y_trn):
+    model.fit(X_trn, X_trn_list,y_trn_list)
     return test(model,X_trn,y_trn)
 
 def test(model, X_test, y_test):
@@ -134,17 +129,23 @@ def print_confusion(confusion_matrix):
 def save_model(model, path):
     dump(model, path)
 
-def create_test(iteration_min, iteration_max, iteration_step, save_path, hidden_sizes = (1000,500,100)):
+def create_test(iteration_min, iteration_max, iteration_step, save_path, classifier_count=20, hidden_layer_sizes = (40,20), director_sizes=(40,40)):
     accs_trn = []
     accs_test = []
     confusions = []
-    classifier = MLPClassifier(hidden_layer_sizes=hidden_sizes, random_state=1, max_iter=iteration_step, warm_start=True)
+    classifier = ClassifierArray(director_hidden_sizes = director_sizes, hidden_sizes = hidden_layer_sizes, random=1, count=classifier_count, max_iterations=iteration_step, warm=True)
     X_trn,y_trn,X_test,y_test = get_train_test_sets(folder_ids=range(0,156))
+    X_trn_list = []
+    y_trn_list = []
+    length = len(y_trn)
+    for i in range(classifier_count):
+        X_trn_list.append(X_trn[int(i*length/classifier_count):int((i+1)*length/classifier_count)])
+        y_trn_list.append(y_trn[int(i*length/classifier_count):int((i+1)*length/classifier_count)])
     
     for it in range(iteration_min,iteration_max,iteration_step):
         #print("training with max iter=%d" % it)
-        acc_trn = avg_confusion(train(classifier,X_trn,y_trn))
-        print("testing with max iter=%d" % it)
+        acc_trn = avg_confusion(train(classifier,X_trn_list,y_trn_list, X_trn, y_trn))
+        print("testing with max iter=%d (training acc: %.2f)" % (it, acc_trn))
         conf = test(classifier,X_test,y_test)
         confusions.append(conf)
         acc_test = avg_confusion(conf)
@@ -158,9 +159,9 @@ def create_test(iteration_min, iteration_max, iteration_step, save_path, hidden_
 all_tracks = utils.load('data/fma_metadata/tracks.csv')
 all_listens = all_tracks[all_tracks['set', 'subset'] <= 'small'][('track', 'listens')]
 
-it_min =    20
-it_max=     2000
-it_step =   20
+it_min =    10
+it_max=     500
+it_step =   10
 
 train_epochs = range(it_min, it_max, it_step)
 model, accs_trn, accs_test, confusions = create_test(it_min,it_max,it_step, 'data\\models\\')
