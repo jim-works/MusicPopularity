@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import glob
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn as skl
@@ -80,7 +81,19 @@ def get_listen_categories(folder, cutoff=2500):
         l.append(value)
         overcutoff += value
         undercutoff += 1-value
-    #print("P(under cutoff): " + ("%0.3f" % (1-overcutoff/total))+ ", P(over cutoff): " + ("%0.3f" % (overcutoff/total)))
+    return (l, overcutoff, undercutoff)
+
+#median for our dataset
+def get_listen_categories_MyTracks(folder, cutoff=93365877):
+    paths = glob.glob(folder + "\\*.wav")
+    l = []
+    overcutoff = 0
+    undercutoff = 0
+    for path in paths:
+        value = 1 if int(all_listens[path[path.rfind('\\')+1:-4]]) >= cutoff else 0
+        l.append(value)
+        overcutoff += value
+        undercutoff += 1-value
     return (l, overcutoff, undercutoff)
 
 def get_train_test_sets(test_interval=3,folder_ids=range(0,156),mfcc_folder='data\\fma_small_mfcc\\', audio_folder='data\\fma_small\\', cutoff=2500):
@@ -106,8 +119,27 @@ def get_train_test_sets(test_interval=3,folder_ids=range(0,156),mfcc_folder='dat
                 
     return (np.array(X_trn),np.array(y_trn),np.array(X_test),np.array(y_test))
 
+def get_train_test_sets_MyTracks(test_interval=3,mfcc_folder='data\\MyTracks_mfcc\\', audio_folder='data\\MyTracks\\', cutoff=2500):
+    X_trn = []
+    y_trn = []
+    X_test = []
+    y_test = []
+    fmfccs = load_transform_mfccs('data\\MyTracks_mfcc\\000.npy')
+    listens, pos, neg = get_listen_categories_MyTracks('data\\MyTracks')
+    for i in range(0,len(listens)):
+            if i % test_interval == 0:
+                X_test.append(fmfccs[i])
+                y_test.append(listens[i])
+            else:
+                X_trn.append(fmfccs[i])
+                y_trn.append(listens[i])
+    return (np.array(X_trn),np.array(y_trn),np.array(X_test),np.array(y_test))
+    
 def train(model, X_trn_list, y_trn_list, X_trn, y_trn):
     model.fit(X_trn, X_trn_list,y_trn_list)
+    return test(model,X_trn,y_trn)
+def train_MLP(model, X_trn, y_trn):
+    model.fit(X_trn, y_trn)
     return test(model,X_trn,y_trn)
 
 def test(model, X_test, y_test):
@@ -155,16 +187,41 @@ def create_test(iteration_min, iteration_max, iteration_step, save_path, classif
         #save_model(classifier, save_path + str(hidden_sizes) + str(it) + ' epochs.joblib')
     return (classifier, accs_trn,accs_test, confusions)
 
+def create_test_MyTracks(iteration_min, iteration_max, iteration_step, save_path, hidden_sizes = (40,20)):
+    accs_trn = []
+    accs_test = []
+    confusions = []
+    classifier = MLPClassifier(hidden_layer_sizes = hidden_sizes, random_state=1, max_iter=iteration_step, warm_start=True)
+    X_trn,y_trn,X_test,y_test = get_train_test_sets_MyTracks()
+    
+    for it in range(iteration_min,iteration_max,iteration_step):
+        #print("training with max iter=%d" % it)
+        acc_trn = avg_confusion(train_MLP(classifier, X_trn, y_trn))
+        print("testing with max iter=%d (training acc: %.2f)" % (it, acc_trn))
+        conf = test(classifier,X_test,y_test)
+        confusions.append(conf)
+        acc_test = avg_confusion(conf)
+        accs_trn.append(acc_trn)
+        accs_test.append(acc_test)
+        print()
+        #save_model(classifier, save_path + str(hidden_sizes) + str(it) + ' epochs.joblib')
+    return (classifier, accs_trn,accs_test, confusions)
 
-all_tracks = utils.load('data/fma_metadata/tracks.csv')
-all_listens = all_tracks[all_tracks['set', 'subset'] <= 'small'][('track', 'listens')]
 
-it_min =    10
-it_max=     500
-it_step =   10
+def load_MyTracks(path_to_csv='data/MyTracks.csv'):
+    tracks = pd.read_csv(path_to_csv, index_col=0, usecols=[0,1])
+    return tracks['Plays']
+
+#all_tracks = utils.load('data/fma_metadata/tracks.csv')
+#all_listens = all_tracks[all_tracks['set', 'subset'] <= 'small'][('track', 'listens')]
+all_listens = load_MyTracks()
+
+it_min =    5
+it_max=     100
+it_step =   5
 
 train_epochs = range(it_min, it_max, it_step)
-model, accs_trn, accs_test, confusions = create_test(it_min,it_max,it_step, 'data\\models\\')
+model, accs_trn, accs_test, confusions = create_test_MyTracks(it_min,it_max,it_step, 'data\\models\\')
 
 print()
 print('done')
@@ -190,7 +247,6 @@ plt.ylabel('Accuracy', fontsize=16)
 #loaded = load('data\\MLPregressor.joblib')
 
 #print(test_folder(loaded,1))
-
 
 
 # ## 4 Audio
