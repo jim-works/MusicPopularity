@@ -187,7 +187,7 @@ def create_test(iteration_min, iteration_max, iteration_step, save_path, classif
         #save_model(classifier, save_path + str(hidden_sizes) + str(it) + ' epochs.joblib')
     return (classifier, accs_trn,accs_test, confusions)
 
-def create_test_MyTracks(iteration_min, iteration_max, iteration_step, save_path, hidden_sizes = (40,20)):
+def create_test_MyTracks_MLP(iteration_min, iteration_max, iteration_step, save_path, hidden_sizes = (40,20)):
     accs_trn = []
     accs_test = []
     confusions = []
@@ -197,6 +197,31 @@ def create_test_MyTracks(iteration_min, iteration_max, iteration_step, save_path
     for it in range(iteration_min,iteration_max,iteration_step):
         #print("training with max iter=%d" % it)
         acc_trn = avg_confusion(train_MLP(classifier, X_trn, y_trn))
+        print("testing with max iter=%d (training acc: %.2f)" % (it, acc_trn))
+        conf = test(classifier,X_test,y_test)
+        confusions.append(conf)
+        acc_test = avg_confusion(conf)
+        accs_trn.append(acc_trn)
+        accs_test.append(acc_test)
+        print()
+        #save_model(classifier, save_path + str(hidden_sizes) + str(it) + ' epochs.joblib')
+    return (classifier, accs_trn,accs_test, confusions)
+def create_test_MyTracks_Array(iteration_min, iteration_max, iteration_step, save_path, classifier_count=5, hidden_layer_sizes = (20,15), director_sizes=(40,20)):
+    accs_trn = []
+    accs_test = []
+    confusions = []
+    classifier = ClassifierArray(director_hidden_sizes = director_sizes, hidden_sizes = hidden_layer_sizes, random=1, count=classifier_count, max_iterations=iteration_step, warm=True)
+    X_trn,y_trn,X_test,y_test = get_train_test_sets_MyTracks()
+    X_trn_list = []
+    y_trn_list = []
+    length = len(y_trn)
+    for i in range(classifier_count):
+        X_trn_list.append(X_trn[int(i*length/classifier_count):int((i+1)*length/classifier_count)])
+        y_trn_list.append(y_trn[int(i*length/classifier_count):int((i+1)*length/classifier_count)])
+    
+    for it in range(iteration_min,iteration_max,iteration_step):
+        #print("training with max iter=%d" % it)
+        acc_trn = avg_confusion(train(classifier,X_trn_list,y_trn_list, X_trn, y_trn))
         print("testing with max iter=%d (training acc: %.2f)" % (it, acc_trn))
         conf = test(classifier,X_test,y_test)
         confusions.append(conf)
@@ -221,7 +246,7 @@ it_max=     100
 it_step =   5
 
 train_epochs = range(it_min, it_max, it_step)
-model, accs_trn, accs_test, confusions = create_test_MyTracks(it_min,it_max,it_step, 'data\\models\\')
+model, accs_trn, accs_test, confusions = create_test_MyTracks_Array(it_min,it_max,it_step, 'data\\models\\')
 
 print()
 print('done')
@@ -240,67 +265,4 @@ plt.plot(train_epochs, accs_test, 'go-', linewidth=2, label='test accuracy')
 plt.legend(bbox_to_anchor=(1, 1))
 plt.xlabel('Training epochs', fontsize=16)
 plt.ylabel('Accuracy', fontsize=16)
-
-
-#save_model(regressor, 'data\\MLPregressor.joblib')
-#print('model saved!')
-#loaded = load('data\\MLPregressor.joblib')
-
-#print(test_folder(loaded,1))
-
-
-# ## 4 Audio
-# 
-# You can load the waveform and listen to audio in the notebook itself.
-
-# In[ ]:
-
-
-#filename = utils.get_audio_path(AUDIO_DIR, 2)
-#print('File: {}'.format(filename))
-
-#x, sr = librosa.load(filename, sr=22050, mono=True)
-#print('Duration: {:.2f}s, {} samples'.format(x.shape[-1] / sr, x.size))
-
-#start, end = 7, 17
-#ipd.Audio(data=x[start*sr:end*sr], rate=sr)
-
-
-# And use [librosa](https://github.com/librosa/librosa) to compute spectrograms and audio features.
-
-# In[ ]:
-
-
-#librosa.display.waveplot(x, sr, alpha=0.5);
-#plt.show()
-#plt.vlines([start, end], -1, 1)
-
-#start = len(x) // 2
-#plt.figure()
-#plt.plot(x[start:start+2000])
-#plt.ylim((-1, 1));
-
-
-# In[ ]:
-
-
-#stft = np.abs(librosa.stft(x, n_fft=2048, hop_length=512))
-#mel = librosa.feature.melspectrogram(sr=sr, S=stft**2)
-#log_mel = librosa.logamplitude(mel)
-#log_mel = librosa.amplitude_to_db(mel) #amplitude_to_db replaced logamplitude
-
-#librosa.display.specshow(log_mel, sr=sr, hop_length=512, x_axis='time', y_axis='mel');
-#plt.show()
-
-
-# In[ ]:
-
-
-#mfcc = librosa.feature.mfcc(S=librosa.power_to_db(mel), n_mfcc=20)
-#mfcc = skl.preprocessing.StandardScaler().fit_transform(mfcc)
-#print(len(mfcc))
-#print(len(mfcc[0]))
-#librosa.display.specshow(mfcc, sr=sr, x_axis='time');
-#plt.show()
-
 

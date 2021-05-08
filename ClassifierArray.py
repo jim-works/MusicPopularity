@@ -16,11 +16,11 @@ class ClassifierArray:
         results = []
         predictions= []
         cases = X.shape[0]
-        """program = self.director_model.predict(X)
+        program = self.director_model.predict(X)
         for i in range(program.shape[0]):
             predictions.append(self.models[int(program[i])].predict(X[i,:].reshape(1,-1)))
-        """
-        for model in self.models:
+        
+        """for model in self.models:
             model_result = model.predict_proba(X)
             results.append(model_result)
         for i in range(cases):
@@ -32,7 +32,7 @@ class ClassifierArray:
                 if p > max_p:
                     max_class = c
                     max_p = p
-            predictions.append(max_class) 
+            predictions.append(max_class) """
         return np.array(predictions)
     
     def fit(self, X_trn, X_trn_list, y_trn_list):
@@ -42,11 +42,11 @@ class ClassifierArray:
         y_trn_director = []
         for i in range(len(X_trn_list)):
             self.models[i].fit(X_trn_list[i],y_trn_list[i])
-            #y_trn_director.append(np.ones(len(X_trn_list[i]))*i)
-        #y_dir = np.concatenate(y_trn_director).ravel()
+            y_trn_director.append(np.ones(len(X_trn_list[i]))*i)
+        y_dir = np.concatenate(y_trn_director).ravel()
         #print(y_dir.shape)
         #print(y_dir)
-        #self.director_model.fit(X_trn,y_dir)
+        self.director_model.fit(X_trn,y_dir)
             
             
             
