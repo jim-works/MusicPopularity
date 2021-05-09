@@ -90,10 +90,13 @@ def get_listen_categories_MyTracks(folder, cutoff=93365877):
     overcutoff = 0
     undercutoff = 0
     for path in paths:
-        value = 1 if int(all_listens[path[path.rfind('\\')+1:-4]]) >= cutoff else 0
-        l.append(value)
-        overcutoff += value
-        undercutoff += 1-value
+        try:
+            value = 1 if int(all_listens[path[path.rfind('\\')+1:-4]]) >= cutoff else 0
+            l.append(value)
+            overcutoff += value
+            undercutoff += 1-value
+        except:
+            continue
     return (l, overcutoff, undercutoff)
 
 def get_train_test_sets(test_interval=3,folder_ids=range(0,156),mfcc_folder='data\\fma_small_mfcc\\', audio_folder='data\\fma_small\\', cutoff=2500):
@@ -241,6 +244,8 @@ def load_MyTracks(path_to_csv='data/MyTracks.csv'):
 #all_listens = all_tracks[all_tracks['set', 'subset'] <= 'small'][('track', 'listens')]
 all_listens = load_MyTracks()
 
+#save_mfccs(get_mfccs('data/MyTracks'), 'data/MyTracks_mfcc')
+
 it_min =    5
 it_max=     100
 it_step =   5
@@ -265,4 +270,3 @@ plt.plot(train_epochs, accs_test, 'go-', linewidth=2, label='test accuracy')
 plt.legend(bbox_to_anchor=(1, 1))
 plt.xlabel('Training epochs', fontsize=16)
 plt.ylabel('Accuracy', fontsize=16)
-
