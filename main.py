@@ -63,13 +63,6 @@ def load_transform_mfccs(path):
         fmfccs.append(m.flatten())
     return fmfccs
 
-def get_listens(folder):
-    paths = glob.glob(folder + "\\*.wav")
-    l = []
-    for path in paths:
-        l.append(all_listens[int(path[path.rfind('\\')+1:-4])])
-    return l
-
 #4012 songs out of 8000 with at least 2500 plays
 def get_listen_categories(folder, cutoff=2500):
     paths = glob.glob(folder + "\\*.wav")
